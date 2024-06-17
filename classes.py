@@ -1,15 +1,10 @@
-#################################################################################
-# Chat2VIS supporting functions
-# https://chat2vis.streamlit.app/
-# Paula Maddigan
-#################################################################################
-
 import openai
 import google.generativeai as genai
 import os
 
-def run_request(question_to_ask, model_type, key, alt_key):
+def run_request(question_to_ask, model_type):
     if model_type == "gpt-4" or model_type == "gpt-3.5-turbo" :
+        key = os.environ['OPENAI_API_KEY']
         # Run OpenAI ChatCompletion API
         task = "Generate Python Code Script."
         if model_type == "gpt-4":
@@ -21,6 +16,7 @@ def run_request(question_to_ask, model_type, key, alt_key):
         llm_response = response["choices"][0]["message"]["content"]
 
     elif model_type == "text-davinci-003" or model_type == "gpt-3.5-turbo-instruct":
+        key = os.environ['OPENAI_API_KEY']
         # Run OpenAI Completion API
         openai.api_key = key
         response = openai.Completion.create(engine=model_type,prompt=question_to_ask,temperature=0,max_tokens=500,
