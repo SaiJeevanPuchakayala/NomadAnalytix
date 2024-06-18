@@ -7,7 +7,7 @@ import os
 warnings.filterwarnings("ignore")
 load_dotenv()
 
-available_models = {"Gemini":"gemini-1.5-flash", "ChatGPT-4o": "gpt-4o", "ChatGPT-3.5": "gpt-3.5-turbo-16k"}
+available_models = {"Gemini-Flash": "gemini-1.5-flash", "Gemini-Pro": "gemini-1.5-pro-latest", "ChatGPT-4o": "gpt-4o", "ChatGPT-3.5": "gpt-3.5-turbo-16k"}
 # gpt-3.5-turbo-16k, gpt-4o-2024-05-13, gpt-4o
 
 
@@ -52,10 +52,11 @@ def main(datasets, selected_model, question):
 if __name__ == "__main__":
 	datasets = create_filename_dict("files")
 
-	# selected_model = "Gemini"
-	selected_model = "ChatGPT-3.5"
+	selected_model = "Gemini-Flash"
+	# selected_model = "Gemini-Pro"
+	# selected_model = "ChatGPT-3.5"
 
 	# Text area for query
-	question = "Which are the Top 2 teams with the most wins achieved by chasing targets over the past 3 years?"
+	question = "Best 10 batsmen based on average SR but also have an average economy greater than 10 (SR has non numeric string values that can be removed)"
 
 	main(datasets, selected_model, question)
