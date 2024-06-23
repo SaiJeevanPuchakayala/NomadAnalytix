@@ -10,16 +10,21 @@ dim_match_summary = datasets['dim_match_summary'].copy()
 dim_players = datasets['dim_players'].copy()
 fact_bating_summary = datasets['fact_bating_summary'].copy()
 fact_bowling_summary = datasets['fact_bowling_summary'].copy()
-df = fact_bating_summary.merge(dim_players,left_on='batsmanName',right_on='name').merge(dim_match_summary,left_on='match_id',right_on='match_id')
-df['SR'] = df['SR'].str.replace(r'[^\d.]', '0', regex=True).astype(float)
-df_bowlers = fact_bowling_summary.merge(dim_players,left_on='bowlerName',right_on='name')
-df_bowlers = df_bowlers.groupby('bowlerName')['economy'].mean().reset_index()
-df_batters = df.groupby('batsmanName')['SR'].mean().reset_index()
-df_batters = df_batters.merge(df_bowlers,left_on='batsmanName',right_on='bowlerName').query('economy > 10')
-df_batters = df_batters.sort_values('SR',ascending=False).head(10)
-ax.bar(df_batters['batsmanName'],df_batters['SR'])
-ax.set_xlabel('Batsman Name')
-ax.set_ylabel('Average SR')
-ax.set_title('Top 10 Batsmen with Average SR > 10 and Economy > 10')
+
+# Merge datasets to get runs scored by KKR and bowling economy
+merged_df = fact_bating_summary.merge(fact_bowling_summary, on='match_id', suffixes=('_batting', '_bowling'))
+kkr_runs_economy = merged_df[(merged_df['teamInnings'] == 'KKR') & (merged_df['bowlingTeam'] == 'KKR')][['runs_batting', 'economy']]
+
+# Create the scatter plot
+plt.scatter(kkr_runs_economy['runs_batting'], kkr_runs_economy['economy'], s=50)
+
+# Set labels and title
+plt.xlabel('Runs Scored by KKR')
+plt.ylabel('Bowling Economy')
+plt.title('Runs Scored by KKR vs Bowling Economy')
+
+# Set the fig suptitle as empty
 fig.suptitle('')
+
+# Show the plot
 plt.show()

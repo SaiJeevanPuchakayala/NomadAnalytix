@@ -3,6 +3,7 @@ from classes import get_primer, format_question, run_request, create_desc_primer
 import warnings
 from dotenv import load_dotenv
 import os
+import streamlit as st
 
 warnings.filterwarnings("ignore")
 load_dotenv()
@@ -45,18 +46,22 @@ def main(datasets, selected_model, question):
 	# the answer is the completed Python script so add to the beginning of the script to it.
 
 	# print(question_to_ask)
-	print(answer)
-	exec(answer)
+	return answer
 
 
 if __name__ == "__main__":
 	datasets = create_filename_dict("files")
 
-	selected_model = "Gemini-Flash"
-	# selected_model = "Gemini-Pro"
-	# selected_model = "ChatGPT-3.5"
+	selected_model = st.radio(r"$\textsf{Select Model}$", list(available_models.keys()))
 
 	# Text area for query
-	question = "Best 10 batsmen based on average SR but also have an average economy greater than 10 (SR has non numeric string values that can be removed)"
+	messages = st.container()
+	if prompt := messages.chat_input("Ask something"):
+		messages.chat_message("user").write(prompt)
+		with messages.chat_message("assistant").status("Running...") as status:
+			answer = main(datasets, selected_model, prompt)
+			print(answer)
+			fig = exec(answer)
+			status.update(label="Done", state="complete")
+			messages.pyplot(fig)
 
-	main(datasets, selected_model, question)
