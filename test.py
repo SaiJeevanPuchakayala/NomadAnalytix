@@ -11,20 +11,15 @@ dim_players = datasets['dim_players'].copy()
 fact_bating_summary = datasets['fact_bating_summary'].copy()
 fact_bowling_summary = datasets['fact_bowling_summary'].copy()
 
-# Merge datasets to get runs scored by KKR and bowling economy
-merged_df = fact_bating_summary.merge(fact_bowling_summary, on='match_id', suffixes=('_batting', '_bowling'))
-kkr_runs_economy = merged_df[(merged_df['teamInnings'] == 'KKR') & (merged_df['bowlingTeam'] == 'KKR')][['runs_batting', 'economy']]
-
-# Create the scatter plot
-plt.scatter(kkr_runs_economy['runs_batting'], kkr_runs_economy['economy'], s=50)
-
-# Set labels and title
-plt.xlabel('Runs Scored by KKR')
-plt.ylabel('Bowling Economy')
-plt.title('Runs Scored by KKR vs Bowling Economy')
-
-# Set the fig suptitle as empty
-fig.suptitle('')
-
-# Show the plot
+fact_bowling_summary = fact_bowling_summary.merge(dim_match_summary, on = 'match_id').merge(dim_players, left_on='bowlerName',right_on='name')
+fact_bowling_summary['year'] = pd.to_datetime(fact_bowling_summary['matchDate']).dt.year
+bowlers_performance = fact_bowling_summary[fact_bowling_summary['year']>=2020].groupby(['bowlerName','year'])['runs','wickets','overs'].sum().reset_index()
+bowlers_performance = bowlers_performance[bowlers_performance['overs']>=10]
+bowlers_performance['bowling_average'] = bowlers_performance['runs']/bowlers_performance['wickets']
+bowlers_avg = bowlers_performance.groupby('bowlerName')['bowling_average'].mean().sort_values().reset_index()
+bowlers_avg = bowlers_avg.head(10)
+plt.barh(bowlers_avg['bowlerName'],bowlers_avg['bowling_average'],color=['#00a9b5','#00a9b5','#00a9b5','#00a9b5','#00a9b5','#00a9b5','#00a9b5','#00a9b5','#00a9b5','#750d37'])
+plt.xlabel('Bowling Average')
+plt.ylabel('Bowler Name')
+plt.title('Top 10 bowlers based on past 3 years bowling average',loc='left')
 plt.show()

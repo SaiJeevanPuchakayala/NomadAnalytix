@@ -5,42 +5,34 @@ import re
 
 
 def run_request(question_to_ask, model_type):
-    if model_type == "gpt-4" or model_type == "gpt-3.5-turbo" :
+    if model_type == "gpt-4" or model_type == "gpt-3.5-turbo-16k" :
         key = os.environ['OPENAI_API_KEY']
         # Run OpenAI ChatCompletion API
         task = "Generate Python Code Script."
-        if model_type == "gpt-4":
+        if model_type == "gpt-4o":
             # Ensure GPT-4 does not include additional comments
             task = task + " The script should only include code, no comments."
         openai.api_key = key
         response = openai.ChatCompletion.create(model=model_type,
-            messages=[{"role":"system","content":task},{"role":"user","content":question_to_ask}])
+            messages=[{"role":"system","content":task},{"role":"user", "content":question_to_ask}])
         llm_response = response["choices"][0]["message"]["content"]
+        llm_response = format_response(llm_response)
 
-    elif model_type == "text-davinci-003" or model_type == "gpt-3.5-turbo-instruct":
-        key = os.environ['OPENAI_API_KEY']
-        # Run OpenAI Completion API
-        openai.api_key = key
-        response = openai.Completion.create(engine=model_type,prompt=question_to_ask,temperature=0,max_tokens=500,
-                    top_p=1.0,frequency_penalty=0.0,presence_penalty=0.0,stop=["plt.show()"])
-        llm_response = response["choices"][0]["text"] 
-
-    else:
+    elif "gemini" in model_type:
         # Gemini model
         genai.configure(api_key=os.environ['GEMINI_API_KEY'])
         # Choose a model that's appropriate for your use case.
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel(model_type)
 
         prompt = question_to_ask
 
-        llm_response = model.generate_content(prompt)
+        llm_response = model.generate_content(prompt).text
+        llm_response = find_code_blocks(format_response(llm_response))[0]
 
-    # rejig the response
-    llm_response = find_code_blocks(format_response(llm_response.text))[0]
     return llm_response
 
 
-def format_response( res):
+def format_response(res):
     # Remove the load_csv from the answer if it exists
     csv_line = res.find("read_csv")
     if csv_line > 0:
@@ -63,12 +55,12 @@ def format_response( res):
 
 def format_question(primer_desc,primer_code , question, model_type):
     # Fill in the model_specific_instructions variable
-    instructions = ""
+    instructions = "'datasets' is a dictionary containing the dataframes. Do not include the lines of code that has already been provided in the prompt."
     if model_type == "Code Llama":
         # Code llama tends to misuse the "c" argument when creating scatter plots
         instructions = "\nDo not use the 'c' argument in the plot function, use 'color' instead and only pass color names like 'green', 'red', 'blue'."
     elif model_type == "Gemini":
-        instructions = "\nOuutput only the code, no explanations or comments."
+        instructions = "\nOutput only the code, no explanations or comments."
     primer_desc = primer_desc.format(instructions)
     # Put the question at the end of the description primer within quotes, then add on the code primer.
     return  '"""\n' + primer_desc + question + '\n"""\n' + primer_code
@@ -94,13 +86,21 @@ def create_desc_primer(df_dataset):
     # and horizontal grid lines and labeling
     primer_desc = f"This dataset has columns '" \
         + "','".join(str(x) for x in df_dataset.columns) + "'. "
+    issues = []
     for i in df_dataset.columns:
         if len(df_dataset[i].drop_duplicates()) < 20 and df_dataset.dtypes[i]=="O":
             primer_desc = primer_desc + "\nThe column '" + i + "' has categorical values '" + \
                 "','".join(str(x) for x in df_dataset[i].drop_duplicates()) + "'. "
         elif df_dataset.dtypes[i]=="int64" or df_dataset.dtypes[i]=="float64":
             primer_desc = primer_desc + "\nThe column '" + i + "' is type " + str(df_dataset.dtypes[i]) + " and contains numeric values. "
-    return primer_desc
+        else:
+            if df_dataset[i].map(lambda x: x.replace('.','',1).isdigit()).sum() > 20:
+                primer_desc = primer_desc + "\nThe column '" + i + "' is probably integer type but contains categorical values. This column has to be cleaned. "
+                issues.append(i)
+            else:
+                primer_desc = primer_desc + "\nThe column '" + i + "' has categorical values."
+    return primer_desc, issues
+
 
 def find_code_blocks(text):
     # Define a regular expression pattern to match ``` followed by anything

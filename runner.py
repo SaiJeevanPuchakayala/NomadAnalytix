@@ -7,6 +7,7 @@ import streamlit as st
 
 warnings.filterwarnings("ignore")
 load_dotenv()
+st.set_option('deprecation.showPyplotGlobalUse', False)
 
 available_models = {"Gemini-Flash": "gemini-1.5-flash", "Gemini-Pro": "gemini-1.5-pro-latest", "ChatGPT-4o": "gpt-4o", "ChatGPT-3.5": "gpt-3.5-turbo-16k"}
 # gpt-3.5-turbo-16k, gpt-4o-2024-05-13, gpt-4o
@@ -31,9 +32,16 @@ def create_filename_dict(folder_path):
 def main(datasets, selected_model, question):
 	# Execute chatbot query
 	primer0 = f'There are {len(datasets)} datasets available.'
+	issues = {}
 	for i, chosen_dataset in enumerate(datasets):
 		primer0 += f'\nDataset {i + 1} is {chosen_dataset}.\n'
-		primer0 += create_desc_primer(datasets[chosen_dataset]) + '\n'
+		primer, issue = create_desc_primer(datasets[chosen_dataset])
+		primer0 += primer + '\n'
+		issues[chosen_dataset] = issue
+
+	for key, value in issues.items():
+		if value:
+			messages.warning(f"Dataset {key} has issues in the following columns: {value}\nThis may cause problems in the output please clean data.")
 
 	primer1, primer2 = get_primer(datasets)
 	primer1 = primer0 + primer1
@@ -43,6 +51,9 @@ def main(datasets, selected_model, question):
 
 	# Run the question
 	answer = run_request(question_to_ask, available_models[selected_model])
+
+	# if "gpt" in available_models[selected_model]:
+	answer = primer2 + answer
 	# the answer is the completed Python script so add to the beginning of the script to it.
 
 	# print(question_to_ask)
@@ -51,6 +62,10 @@ def main(datasets, selected_model, question):
 
 if __name__ == "__main__":
 	datasets = create_filename_dict("files")
+	with st.sidebar:
+		st.title("Selected Datasets")
+		for i in range(len(datasets)):
+			st.write(list(datasets.keys())[i])
 
 	selected_model = st.radio(r"$\textsf{Select Model}$", list(available_models.keys()))
 
@@ -61,6 +76,7 @@ if __name__ == "__main__":
 		with messages.chat_message("assistant").status("Running...") as status:
 			answer = main(datasets, selected_model, prompt)
 			print(answer)
+			st.code(answer)
 			fig = exec(answer)
 			status.update(label="Done", state="complete")
 			messages.pyplot(fig)
