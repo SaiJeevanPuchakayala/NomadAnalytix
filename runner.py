@@ -1,5 +1,6 @@
+import matplotlib.pyplot as plt
 import pandas as pd
-from classes import get_primer, format_question, run_request, create_desc_primer
+from classes import get_primer, format_question, run_request, create_desc_primer, run_image_request
 import warnings
 from dotenv import load_dotenv
 import os
@@ -29,7 +30,7 @@ def create_filename_dict(folder_path):
 	return filename_dict
 
 
-def main(datasets, selected_model, question):
+def get_graph(datasets, selected_model, question):
 	# Execute chatbot query
 	primer0 = f'There are {len(datasets)} datasets available.'
 	issues = {}
@@ -74,10 +75,19 @@ if __name__ == "__main__":
 	if prompt := messages.chat_input("Ask something"):
 		messages.chat_message("user").write(prompt)
 		with messages.chat_message("assistant").status("Running...") as status:
-			answer = main(datasets, selected_model, prompt)
+			answer = get_graph(datasets, selected_model, prompt)
 			print(answer)
 			st.code(answer)
-			fig = exec(answer)
+			exec(answer, globals(), locals())
 			status.update(label="Done", state="complete")
 			messages.pyplot(fig)
+			plt.savefig("output.png")
+
+		with messages.chat_message("inference", avatar="✨").status("Running...") as status:
+			out = run_image_request(prompt, available_models[selected_model], "output.png")
+			print(out)
+			status.update(label="Done", state="complete")
+			messages.write(out)
+
+
 
