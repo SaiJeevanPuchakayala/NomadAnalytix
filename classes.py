@@ -123,7 +123,7 @@ def run_image_request(question_to_ask, model_type, image_path):
         # Run OpenAI ChatCompletion API
         task = "Generate Python Code Script."
         openai.api_key = key
-        response = openai.ChatCompletion.create(model=model_type,
+        response = openai.ChatCompletion.create(model='gpt-4o',
                                                 messages=[
                                                     {
                                                         "role": "system",
