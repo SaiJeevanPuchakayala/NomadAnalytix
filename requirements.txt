@@ -4,3 +4,4 @@ matplotlib
 openai
 google-generativeai
 streamlit
+python-dotenv
