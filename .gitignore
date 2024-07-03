@@ -2,3 +2,4 @@
 .env
 output.png
 __pycache__
+.streamlit/secrets.toml
