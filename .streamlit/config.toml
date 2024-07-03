@@ -1,7 +1,7 @@
 [theme]
-primaryColor = "#4CAF50"        # Primary color changed to green
-backgroundColor = "#003300"     # Dark green background color
-secondaryBackgroundColor = "#006400" # Darker green secondary background color
+primaryColor = "#1E90FF"        # Primary color changed to DodgerBlue
+backgroundColor = "#000080"     # Navy background color
+secondaryBackgroundColor = "#00008B" # Darker blue secondary background color
 textColor = "#E0E0E0"           # Light gray text color for contrast
 font = "sans serif"
 
