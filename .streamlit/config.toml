@@ -1,8 +1,8 @@
 [theme]
-primaryColor = "#1E90FF"        # Primary color changed to DodgerBlue
-backgroundColor = "#000080"     # Navy background color
-secondaryBackgroundColor = "#00008B" # Darker blue secondary background color
-textColor = "#E0E0E0"           # Light gray text color for contrast
+primaryColor = "#1E90FF"        # DodgerBlue
+backgroundColor = "#000080"     # Navy
+secondaryBackgroundColor = "#00008B" # DarkBlue
+textColor = "#E0E0E0"           # Light gray for contrast
 font = "sans serif"
 
 [browser]
