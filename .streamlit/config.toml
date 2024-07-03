@@ -1,7 +1,7 @@
 [theme]
-primaryColor = "#1E90FF"        # DodgerBlue
-backgroundColor = "#000080"     # Navy
-secondaryBackgroundColor = "#00008B" # DarkBlue
+primaryColor = "#6495ED"        # CornflowerBlue
+backgroundColor = "#002147"     # OxfordBlue (Darker shade)
+secondaryBackgroundColor = "#4682B4" # SteelBlue (Lighter shade)
 textColor = "#E0E0E0"           # Light gray for contrast
 font = "sans serif"
 
