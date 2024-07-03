@@ -109,7 +109,7 @@ if __name__ == "__main__":
 			continue
 		if isinstance(message["content"], list):
 			with st.chat_message("assistant"):
-				st.image(decode_image(message["content"][1]["image_url"]["url"].split(',')[-1]), width=300)
+				st.image(decode_image(message["content"][1]["image_url"]["url"].split(',')[-1]))
 			continue
 		if message["role"] == "assistant":
 			with st.chat_message("inference", avatar="✨"):
