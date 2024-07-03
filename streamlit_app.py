@@ -5,7 +5,10 @@ import streamlit as st
 from control import *
 
 warnings.filterwarnings("ignore")
-load_dotenv()
+
+# Retrieve OpenAI API key from Streamlit secrets
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
 def get_system_prompt(datasets):
