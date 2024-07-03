@@ -1,7 +1,7 @@
 pandas
 numpy
 matplotlib
-openai
+openai==0.27.0
 google-generativeai
 streamlit
 python-dotenv
