@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 import warnings
 import streamlit as st
 from control import *
+from dotenv import load_dotenv
+import sqlite3
+
 import openai
 
 warnings.filterwarnings("ignore")
@@ -110,7 +113,20 @@ if __name__ == "__main__":
 
         uploaded_files = st.file_uploader("📑 Choose a CSV file", accept_multiple_files=True)
         for uploaded_file in uploaded_files:
-            datasets[uploaded_file.name.split('.')[0]] = pd.read_csv(uploaded_file)
+            up_file_split = uploaded_file.name.split('.')
+            if up_file_split[1] == 'csv':
+                datasets[up_file_split[0]] = pd.read_csv(uploaded_file)
+            elif up_file_split[1] == 'xlsx':
+                datasets[up_file_split[0]] = pd.read_excel(uploaded_file)
+            elif up_file_split[1] == 'json':
+                datasets[up_file_split[0]] = pd.read_json(uploaded_file)
+            elif up_file_split[1] == 'db':
+                with open(os.path.join("runtime_files", uploaded_file.name), "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                conn = sqlite3.connect("runtime_files/" + uploaded_file.name)
+                table_names = pd.read_sql_query("SELECT name FROM sqlite_master WHERE type='table';", conn)['name'].tolist()
+                for table_name in table_names:
+                    datasets[table_name] = pd.read_sql_query(f"SELECT * FROM {table_name};", conn)
         if st.button("🔄 Reset", type="primary"):
             del st.session_state["messages"]
         if "openai_model" not in st.session_state:
@@ -202,7 +218,7 @@ if __name__ == "__main__":
 
             elif not error_flag:
                 st.pyplot(fig)
-                plt.savefig("output.png")
+                plt.savefig("runtime_files/output.png")
 
                 with st.chat_message("inference", avatar="✨").status("Running...") as status:
                     out = run_image_request(prompt, st.session_state["vision_model"], "output.png",
@@ -211,4 +227,3 @@ if __name__ == "__main__":
 
                 st.write(out)
                 st.session_state.messages.append({"role": "assistant", "content": out})
-            print(st.session_state.messages[0])
