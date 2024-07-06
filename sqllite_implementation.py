@@ -21,6 +21,15 @@ def read_data_from_db(db_name, table_name):
 csv_files = ['./dataset_files/dim_match_summary.csv', './dataset_files/dim_players.csv', './dataset_files/fact_bating_summary.csv', './dataset_files/fact_bowling_summary.csv']
 table_names = ['dim_match_summary', 'dim_players', 'fact_bating_summary', 'fact_bowling_summary']
 
+# Function to export tables from SQLite database to CSV files
+def export_db_to_csv(db_name, table_names, output_csv_files):
+    conn = sqlite3.connect(db_name)
+    for table_name, output_csv in zip(table_names, output_csv_files):
+        query = f"SELECT * FROM {table_name}"
+        df = pd.read_sql(query, conn)
+        df.to_csv(output_csv, index=False)
+    conn.close()
+
 # Database name
 db_name = 'my__ipl_database.db'
 
