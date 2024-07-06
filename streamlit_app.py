@@ -7,8 +7,8 @@ from control import *
 warnings.filterwarnings("ignore")
 
 # Retrieve OpenAI API key from Streamlit secrets
-openai.api_key = st.secrets["OPENAI_API_KEY"]
-
+# openai.api_key = st.secrets["OPENAI_API_KEY"]
+load_dotenv()
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
 def get_system_prompt(datasets):
@@ -132,21 +132,40 @@ if __name__ == "__main__":
                 st.markdown(message["content"])
 
     if datasets:
-        if prompt := st.chat_input("Ask something ❓"):
+        if prompt := st.chat_input("Ask something "):
             with st.chat_message("user"):
                 st.markdown(prompt)
 
-            with st.chat_message("assistant").status("Running... 🏃‍♂️") as status:
-                graph = get_graph(datasets, st.session_state["text_model"], prompt)
-                st.code(graph)
-                exec(graph, globals(), locals())
-                status.update(label="Done ✔️", state="complete")
-            st.pyplot(fig)
-            plt.savefig("output.png")
+            with st.chat_message("assistant").status("Running... 🏃‍") as status:
+                for _ in range(3):
+                    try:
+                        graph = get_graph(datasets, st.session_state["text_model"], prompt)
+                        st.code(graph)
+                        print(graph)
+                        exec(graph, globals(), locals())
+                        error_flag = False
+                        status.update(label="Done ✔️", state="complete")
+                        break
+                    except Exception as e:
+                        st.write(f"Error: {e}")
+                        st.session_state.messages.pop()
+                        continue
+                else:
+                    status.update(label="Error ⚠️", state="error")
+                    error_flag = True
 
-            with st.chat_message("inference", avatar="✨").status("Running... 🏃‍♀️") as status:
-                out = run_image_request(prompt, st.session_state["vision_model"], "output.png", st.session_state.messages)
-                status.update(label="Done ✔️", state="complete")
+            if error_flag:
+                st.write('There was an error, ask the question again to retry or try changing the question')
 
-            st.write(out)
-            st.session_state.messages.append({"role": "assistant", "content": out})
+            elif not error_flag:
+                st.pyplot(fig)
+                plt.savefig("output.png")
+
+                with st.chat_message("inference", avatar="✨").status("Running...") as status:
+                    out = run_image_request(prompt, st.session_state["vision_model"], "output.png",
+                                            st.session_state.messages)
+                    status.update(label="Done ✔️", state="complete")
+
+                st.write(out)
+                st.session_state.messages.append({"role": "assistant", "content": out})
+            print(st.session_state.messages[0])
