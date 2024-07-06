@@ -30,7 +30,8 @@ def get_graph(datasets, selected_model, question):
 	instructions = '''
 Label the x and y axes appropriately.
 Add a title. Set the fig suptitle as empty.
-"datasets" is a dictionary containing the dataframes. Do not assume any columns that have not been provided in the prompt.
+"datasets" is a dictionary containing the dataframes. 
+IMPORTANT: Do not assume and use any columns that have not been provided in the system prompt. Use only the columns specific to that dataset.
 Do not include the lines of code that have already been provided in the prompt.
 Using Python version 3.9.12, create a script using the dataframe df to generate a graph using which a human can infer the following:'''
 
@@ -73,28 +74,9 @@ if __name__ == "__main__":
 			datasets[uploaded_file.name.split('.')[0]] = pd.read_csv(uploaded_file)
 		if st.button("Reset", type="primary"):
 			del st.session_state["messages"]
-
-	# # selected_model = st.radio(r"$\textsf{Select Model}$", list(available_models.keys()))
-	# selected_model = "ChatGPT-4o"
-	# vision_model = "ChatGPT-4 Turbo"
-	# # Text area for query
-	# messages = st.container()
-	# if prompt := messages.chat_input("Ask something"):
-	# 	messages.chat_message("user").write(prompt)
-	# 	with messages.chat_message("assistant").status("Running...") as status:
-	# 		answer = get_graph(datasets, selected_model, prompt)
-	# 		# print(answer)
-	# 		st.code(answer)
-	# 		exec(answer, globals(), locals())
-	# 		status.update(label="Done", state="complete")
-	# 		messages.pyplot(fig)
-	# 		plt.savefig("output.png")
-	#
-	# 	with messages.chat_message("inference", avatar="✨").status("Running...") as status:
-	# 		out = run_image_request(prompt, available_vision_models[vision_model], "output.png")
-	# 		# print(out)
-	# 		status.update(label="Done", state="complete")
-	# 		messages.write(out)
+		if len(st.session_state.messages) > 1:
+			if st.button("Rerun"):
+				del st.session_state["messages"][-3:]
 
 	if "openai_model" not in st.session_state:
 		st.session_state["text_model"] = "gpt-4o"
@@ -120,25 +102,41 @@ if __name__ == "__main__":
 
 	if datasets:
 		if prompt := st.chat_input("Ask something "):
-			# st.session_state.messages.append({"role": "user", "content": prompt})
 			with st.chat_message("user"):
 				st.markdown(prompt)
 
 			with st.chat_message("assistant").status("Running...") as status:
-				graph = get_graph(datasets, st.session_state["text_model"], prompt)
-				st.code(graph)
-				print(graph)
-				exec(graph, globals(), locals())
-				status.update(label="Done", state="complete")
-			st.pyplot(fig)
-			plt.savefig("output.png")
+				for _ in range(3):
+					try:
+						graph = get_graph(datasets, st.session_state["text_model"], prompt)
+						st.code(graph)
+						print(graph)
+						exec(graph, globals(), locals())
+						error_flag = False
+						status.update(label="Done", state="complete")
+						break
+					except Exception as e:
+						st.write(f"Error: {e}")
+						st.session_state.messages.pop()
+						continue
+				else:
+					status.update(label="Error", state="error")
+					error_flag = True
 
-			with st.chat_message("inference", avatar="✨").status("Running...") as status:
-				out = run_image_request(prompt, st.session_state["vision_model"], "output.png", st.session_state.messages)
-				status.update(label="Done", state="complete")
+			if error_flag:
+				st.write('There was an error, ask the question again to retry or try changing the question')
 
-			st.write(out)
-			st.session_state.messages.append({"role": "assistant", "content": out})
+			elif not error_flag:
+				st.pyplot(fig)
+				plt.savefig("output.png")
 
+				with st.chat_message("inference", avatar="✨").status("Running...") as status:
+					out = run_image_request(prompt, st.session_state["vision_model"], "output.png",
+					                        st.session_state.messages)
+					status.update(label="Done", state="complete")
+
+				st.write(out)
+				st.session_state.messages.append({"role": "assistant", "content": out})
+			print(st.session_state.messages[0])
 
 
