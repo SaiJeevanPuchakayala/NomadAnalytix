@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import warnings
-from dotenv import load_dotenv
 import streamlit as st
 from control import *
+import openai
 
 warnings.filterwarnings("ignore")
 
@@ -26,6 +26,20 @@ def get_system_prompt(datasets):
 
     return sysp
 
+def perform_eda(df):
+    eda_report = f"Dataset: {df.name}\n\n"
+    eda_report += "### Basic Information\n"
+    eda_report += f"Shape: {df.shape}\n"
+    eda_report += f"Columns: {df.columns.tolist()}\n"
+    eda_report += f"Data Types:\n{df.dtypes}\n"
+    eda_report += f"Missing Values:\n{df.isnull().sum()}\n\n"
+    eda_report += "### Descriptive Statistics\n"
+    eda_report += f"{df.describe()}\n\n"
+    eda_report += "### Unique Values per Column\n"
+    for col in df.columns:
+        eda_report += f"{col}: {df[col].nunique()} unique values\n"
+    return eda_report
+
 def get_graph(datasets, selected_model, question):
     # Role, Goal, Context Prompting Framework
     role = "You are a highly advanced data analysis assistant."
@@ -37,19 +51,42 @@ The datasets are provided as a dictionary where the keys are dataset names and v
 3. Set the figure's suptitle as empty.
 4. Ensure the code is suitable for Python version 3.9.12.
 5. Use only the columns specified in the prompt.
-6. Avoid duplicating lines of code already provided in the prompt.
+6. Validate the column data types and handle any errors gracefully with clear messages.
+7. Avoid duplicating lines of code already provided in the prompt.
+8. Utilize EDA results to inform the visualization.
 '''
 
-    instructions = f"{role}\n{goal}\n{context}"
+    eda_reports = {}
+    for df_name in datasets:
+        datasets[df_name].name = df_name  # Adding name attribute to the dataframe
+        eda_reports[df_name] = perform_eda(datasets[df_name])
+
+    eda_context = "\n".join(eda_reports.values())
+    instructions = f"{role}\n{goal}\n{context}\n{eda_context}"
 
     code_begin = '''
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+
 fig, ax = plt.subplots(1, 1)
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
+
+def validate_columns(df, required_columns):
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    if missing_columns:
+        raise ValueError(f"Missing columns: {', '.join(missing_columns)}")
+
+def validate_column_types(df, column_types):
+    type_errors = []
+    for col, col_type in column_types.items():
+        if col in df.columns and not pd.api.types.is_dtype_equal(df[col].dtype, col_type):
+            type_errors.append(f"Column '{col}' should be of type {col_type}, but got {df[col].dtype}")
+    if type_errors:
+        raise TypeError(", ".join(type_errors))
+
 '''
 
     for df_name in datasets:
