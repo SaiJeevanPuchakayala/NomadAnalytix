@@ -76,6 +76,16 @@ if __name__ == "__main__":
             datasets[uploaded_file.name.split('.')[0]] = pd.read_csv(uploaded_file)
         if st.button("🔄 Reset", type="primary"):
             del st.session_state["messages"]
+        if "openai_model" not in st.session_state:
+            st.session_state["text_model"] = "gpt-4o"
+            st.session_state["vision_model"] = "gpt-4-turbo-2024-04-09"
+
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+            # st.session_state.messages.append({"role": "system", "content": get_system_prompt(datasets)})
+        if len(st.session_state.messages) > 1:
+            if st.button("Rerun"):
+                del st.session_state["messages"][-3:]
 
         st.header("About Nomad Analytix 🌟")
         st.markdown("""
@@ -88,13 +98,6 @@ if __name__ == "__main__":
         - 🔍 **Future Integration with VLMs:** Plans to integrate Vision Language Models for enhanced functionality.
         """)
 
-    if "openai_model" not in st.session_state:
-        st.session_state["text_model"] = "gpt-4o"
-        st.session_state["vision_model"] = "gpt-4-turbo-2024-04-09"
-
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
-        st.session_state.messages.append({"role": "system", "content": get_system_prompt(datasets)})
 
     if not datasets:
         st.markdown("""
@@ -132,6 +135,9 @@ if __name__ == "__main__":
                 st.markdown(message["content"])
 
     if datasets:
+        if not st.session_state['messages']:
+            st.session_state.messages.append({"role": "system", "content": get_system_prompt(datasets)})
+
         if prompt := st.chat_input("Ask something "):
             with st.chat_message("user"):
                 st.markdown(prompt)
