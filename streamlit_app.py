@@ -104,6 +104,14 @@ def validate_column_types(df, column_types):
 
     return answer
 
+
+def see_graph(image, selected_model, question):
+    prompt = f"You are an inference bot that provides insights based on visualizations. answer in pirate speech"
+    prompt += question
+    inference = run_image_request(prompt, selected_model, image, st.session_state.messages)
+    return inference
+
+
 if __name__ == "__main__":
     st.title("Nomad Analytix 🤖📊")
 
@@ -221,8 +229,7 @@ if __name__ == "__main__":
                 plt.savefig("runtime_files/output.png")
 
                 with st.chat_message("inference", avatar="✨").status("Running...") as status:
-                    out = run_image_request(prompt, st.session_state["vision_model"], "output.png",
-                                            st.session_state.messages)
+                    out = see_graph('runtime_files/output.png', st.session_state["vision_model"], prompt)
                     status.update(label="Done ✔️", state="complete")
 
                 st.write(out)
