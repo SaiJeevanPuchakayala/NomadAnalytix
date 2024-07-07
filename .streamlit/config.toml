@@ -1,8 +1,8 @@
 [theme]
-primaryColor = "#6495ED"        # CornflowerBlue
-backgroundColor = "#002147"     # OxfordBlue (Darker shade)
-secondaryBackgroundColor = "#4682B4" # SteelBlue (Lighter shade)
-textColor = "#E0E0E0"           # Light gray for contrast
+primaryColor = "#FF4500"        # Red Orange
+backgroundColor = "#121212"     # Black
+secondaryBackgroundColor = "#2E2E2E" # Dark Grey
+textColor = "#E0E0E0"           # Light Grey for contrast
 font = "sans serif"
 
 [browser]

@@ -10,22 +10,41 @@ import openai
 warnings.filterwarnings("ignore")
 
 # Retrieve OpenAI API key from Streamlit secrets
-# openai.api_key = st.secrets["OPENAI_API_KEY"]
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 load_dotenv()
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
-def get_system_prompt(datasets):
-    sysp = f'There are {len(datasets)} datasets available 📊.'
+# Set up page configuration
+st.set_page_config(
+    page_title="Nomad Analytix",
+    page_icon="📊",
+)
+
+def get_system_prompt(datasets, dataset_names):
+    # Role
+    role = "You are a highly advanced data analysis assistant."
+
+    # Goal
+    goal = "Your goal is to assist users by providing accurate and insightful information and visualizations based solely on the provided datasets."
+
+    # Context
+    context = f"There are {len(datasets)} datasets available 📊. You should only answer questions or queries about these datasets and not provide any information or answer any questions unrelated to them."
+
+    # Dataset details
+    dataset_details = ""
     issues = {}
-    for i, chosen_dataset in enumerate(datasets):
-        sysp += f'\nDataset {i + 1} is {chosen_dataset} 📁.\n'
-        data_desc, issue = create_data_desc(datasets[chosen_dataset])
-        sysp += data_desc + '\n'
-        issues[chosen_dataset] = issue
+    for i, (df_name, name) in enumerate(zip(datasets.values(), dataset_names.values())):
+        dataset_details += f'\nDataset {i + 1}: {name} 📁\n'
+        data_desc, issue = create_data_desc(df_name)
+        dataset_details += data_desc + '\n'
+        issues[name] = issue
 
     for key, value in issues.items():
         if value:
-            st.warning(f"⚠️ Dataset {key} has issues in the following columns: {value}\nThis may cause problems in the output, please clean data.")
+            st.warning(f"⚠️ Dataset {key} has issues in the following columns: {value}\nThis may cause problems in the output, please clean the data.")
+
+    # Combining role, goal, context, and dataset details into the system prompt
+    sysp = f"{role}\n{goal}\n{context}\n{dataset_details}"
 
     return sysp
 
@@ -104,22 +123,42 @@ def validate_column_types(df, column_types):
 
     return answer
 
+def handle_descriptive_query(datasets, question):
+    response = "Here is the information you requested:\n\n"
+    for df_name in datasets:
+        response += perform_eda(datasets[df_name])
+        response += "\n"
+    return response
 
 def see_graph(image, selected_model, question):
-    prompt = f"You are an inference bot that provides insights based on visualizations. answer in pirate speech"
-    prompt += question
+    # Role, Goal, Context Prompting Framework
+    role = "You are an inference bot that provides insights and recommendations based on visualizations."
+    goal = "Your goal is to provide accurate, insightful, and actionable recommendations derived from the visualized data."
+    context = f'''
+    The visualization presented is based on the following user query: {question}.
+    Your task is to:
+    1. Analyze the graph/image provided.
+    2. Infer key insights from the visualization.
+    3. Provide actionable recommendations based on the insights.
+    4. Ensure the analysis is in simple, understandable language.
+    '''
+    instructions = f"{role}\n{goal}\n{context}"
+
+    prompt = f"{instructions}\nAnalyze the following graph and provide insights and recommendations:"
     inference = run_image_request(prompt, selected_model, image, st.session_state.messages)
     return inference
-
 
 if __name__ == "__main__":
     st.title("Nomad Analytix 🤖📊")
 
     datasets = {}
     with st.sidebar:
-        st.title("📂 Selected Datasets")
+        st.image("./Images/logo.png", width=150)  # Replace with your logo path
+        st.title("📂 Upload Your Datasets")
 
-        uploaded_files = st.file_uploader("📑 Choose a CSV file", accept_multiple_files=True)
+        st.markdown("**Supported file types:** CSV, Excel, JSON, SQLite")
+
+        uploaded_files = st.file_uploader("📑 Choose a file", accept_multiple_files=True)
         for uploaded_file in uploaded_files:
             up_file_split = uploaded_file.name.split('.')
             if up_file_split[1] == 'csv':
@@ -144,21 +183,19 @@ if __name__ == "__main__":
         if "messages" not in st.session_state:
             st.session_state.messages = []
             # st.session_state.messages.append({"role": "system", "content": get_system_prompt(datasets)})
-        if len(st.session_state.messages) > 1:
-            if st.button("Rerun"):
-                del st.session_state["messages"][-3:]
+        if len(st.session_state.messages) > 1 and st.button("Rerun"):
+            del st.session_state["messages"][-3:]
 
         st.header("About Nomad Analytix 🌟")
         st.markdown("""
-        **Nomad Analytix** is a revolutionary platform designed to automate and enhance data analysis tasks, making sophisticated data insights accessible to non-technical teams. Here are some of its key features:
-        - 📊 **Automated Data Analysis:** Simplifies complex data analysis tasks.
-        - 🗣️ **Natural Language Interface:** Interact with data using intuitive natural language prompts.
-        - 📈 **Advanced Visualizations:** Generate insightful visualizations effortlessly.
-        - 🎯 **Actionable Recommendations:** Receive recommendations based on comprehensive data analysis.
+        **Nomad Analytix** is a cutting-edge platform designed to automate and elevate data analysis tasks, providing sophisticated data insights to non-technical teams. Here are some of its key features:
+        - 📊 **Automated Data Analysis:** Streamlines complex data analysis processes.
+        - 🗣️ **Natural Language Interface:** Engage with data using intuitive natural language queries.
+        - 📈 **Advanced Visualizations:** Effortlessly create insightful visualizations.
+        - 🎯 **Actionable Recommendations:** Receive actionable recommendations based on comprehensive data analysis.
         - 🚀 **Prototype on Streamlit:** Demonstrates capabilities on the Streamlit platform.
-        - 🔍 **Future Integration with VLMs:** Plans to integrate Vision Language Models for enhanced functionality.
+        - 🔍 **Integrated with GPT-4 Vision Model:** Leverages advanced Vision Language Models for enhanced functionality, including analyzing and generating insights from visual data.
         """)
-
 
     if not datasets:
         st.markdown("""
@@ -172,9 +209,11 @@ if __name__ == "__main__":
         - **Natural Language Interface**: Ask questions about your data in plain English.
         - **Insightful Visualizations**: Generate clear and actionable visualizations.
         - **Actionable Recommendations**: Get data-driven recommendations for your business.
+        - **Support for Multiple File Types**: Upload CSV, Excel, JSON, and SQLite database files.
+        - **Integrated with GPT-4 Vision Model**: Analyze and derive insights from visual data.
         
         ### Get Started:
-        1. **Upload Your Data**: Use the sidebar to upload your CSV files.
+        1. **Upload Your Data**: Use the sidebar to upload your files.
         2. **Ask Questions**: Enter your questions about the data in the input box.
         3. **View Results**: See visualizations and insights generated from your data.
         
@@ -203,34 +242,39 @@ if __name__ == "__main__":
             with st.chat_message("user"):
                 st.markdown(prompt)
 
-            with st.chat_message("assistant").status("Running... 🏃‍") as status:
-                for _ in range(3):
-                    try:
-                        graph = get_graph(datasets, st.session_state["text_model"], prompt)
-                        st.code(graph)
-                        print(graph)
-                        exec(graph, globals(), locals())
-                        error_flag = False
+            if "describe" in prompt.lower() or "summary" in prompt.lower() or "details" in prompt.lower():
+                response = handle_descriptive_query(datasets, prompt)
+                with st.chat_message("assistant"):
+                    st.markdown(response)
+            else:
+                with st.chat_message("assistant").status("Running... 🏃‍") as status:
+                    for _ in range(3):
+                        try:
+                            graph = get_graph(datasets, st.session_state["text_model"], prompt)
+                            st.code(graph)
+                            print(graph)
+                            exec(graph, globals(), locals())
+                            error_flag = False
+                            status.update(label="Done ✔️", state="complete")
+                            break
+                        except Exception as e:
+                            st.write(f"Error: {e}")
+                            st.session_state.messages.pop()
+                            continue
+                    else:
+                        status.update(label="Error ⚠️", state="error")
+                        error_flag = True
+
+                if error_flag:
+                    st.write('There was an error, ask the question again to retry or try changing the question')
+
+                elif not error_flag:
+                    st.pyplot(fig)
+                    plt.savefig("runtime_files/output.png")
+
+                    with st.chat_message("inference", avatar="✨").status("Running...") as status:
+                        out = see_graph('runtime_files/output.png', st.session_state["vision_model"], prompt)
                         status.update(label="Done ✔️", state="complete")
-                        break
-                    except Exception as e:
-                        st.write(f"Error: {e}")
-                        st.session_state.messages.pop()
-                        continue
-                else:
-                    status.update(label="Error ⚠️", state="error")
-                    error_flag = True
 
-            if error_flag:
-                st.write('There was an error, ask the question again to retry or try changing the question')
-
-            elif not error_flag:
-                st.pyplot(fig)
-                plt.savefig("runtime_files/output.png")
-
-                with st.chat_message("inference", avatar="✨").status("Running...") as status:
-                    out = see_graph('runtime_files/output.png', st.session_state["vision_model"], prompt)
-                    status.update(label="Done ✔️", state="complete")
-
-                st.write(out)
-                st.session_state.messages.append({"role": "assistant", "content": out})
+                    st.write(out)
+                    st.session_state.messages.append({"role": "assistant", "content": out})
