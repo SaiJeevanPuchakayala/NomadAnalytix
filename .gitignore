@@ -1,8 +1,8 @@
 .idea
 .env
-output.png
 __pycache__
 .streamlit/secrets.toml
 sqllite_implementation.py
 test.py
 runner.py
+.mypy_cache

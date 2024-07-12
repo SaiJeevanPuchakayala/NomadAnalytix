@@ -2,17 +2,11 @@ import matplotlib.pyplot as plt
 import warnings
 import streamlit as st
 from control import *
-from dotenv import load_dotenv
 import sqlite3
 
 import openai
 
 warnings.filterwarnings("ignore")
-
-# Retrieve OpenAI API key from Streamlit secrets
-openai.api_key = st.secrets["OPENAI_API_KEY"]
-load_dotenv()
-st.set_option('deprecation.showPyplotGlobalUse', False)
 
 # Set up page configuration
 st.set_page_config(
@@ -20,7 +14,10 @@ st.set_page_config(
     page_icon="📊",
 )
 
-def get_system_prompt(datasets, dataset_names):
+st.set_option('deprecation.showPyplotGlobalUse', False)
+
+
+def get_system_prompt(datasets):
     # Role
     role = "You are a highly advanced data analysis assistant."
 
@@ -33,11 +30,12 @@ def get_system_prompt(datasets, dataset_names):
     # Dataset details
     dataset_details = ""
     issues = {}
-    for i, (df_name, name) in enumerate(zip(datasets.values(), dataset_names.values())):
-        dataset_details += f'\nDataset {i + 1}: {name} 📁\n'
-        data_desc, issue = create_data_desc(df_name)
+
+    for i, chosen_dataset in enumerate(datasets):
+        dataset_details += f'\nDataset {i + 1}: {chosen_dataset} 📁\n'
+        data_desc, issue = create_data_desc(datasets[chosen_dataset])
         dataset_details += data_desc + '\n'
-        issues[name] = issue
+        issues[chosen_dataset] = issue
 
     for key, value in issues.items():
         if value:
@@ -47,6 +45,7 @@ def get_system_prompt(datasets, dataset_names):
     sysp = f"{role}\n{goal}\n{context}\n{dataset_details}"
 
     return sysp
+
 
 def perform_eda(df):
     eda_report = f"Dataset: {df.name}\n\n"
@@ -61,6 +60,7 @@ def perform_eda(df):
     for col in df.columns:
         eda_report += f"{col}: {df[col].nunique()} unique values\n"
     return eda_report
+
 
 def get_graph(datasets, selected_model, question):
     # Role, Goal, Context Prompting Framework
@@ -123,12 +123,14 @@ def validate_column_types(df, column_types):
 
     return answer
 
+
 def handle_descriptive_query(datasets, question):
     response = "Here is the information you requested:\n\n"
     for df_name in datasets:
         response += perform_eda(datasets[df_name])
         response += "\n"
     return response
+
 
 def see_graph(image, selected_model, question):
     # Role, Goal, Context Prompting Framework
@@ -148,12 +150,14 @@ def see_graph(image, selected_model, question):
     inference = run_image_request(prompt, selected_model, image, st.session_state.messages)
     return inference
 
+
 if __name__ == "__main__":
     st.title("Nomad Analytix 🤖📊")
 
     datasets = {}
     with st.sidebar:
         st.image("./Images/logo.png", width=150)  # Replace with your logo path
+
         st.title("📂 Upload Your Datasets")
 
         st.markdown("**Supported file types:** CSV, Excel, JSON, SQLite")
@@ -174,6 +178,7 @@ if __name__ == "__main__":
                 table_names = pd.read_sql_query("SELECT name FROM sqlite_master WHERE type='table';", conn)['name'].tolist()
                 for table_name in table_names:
                     datasets[table_name] = pd.read_sql_query(f"SELECT * FROM {table_name};", conn)
+
         if st.button("🔄 Reset", type="primary"):
             del st.session_state["messages"]
         if "openai_model" not in st.session_state:
@@ -197,7 +202,7 @@ if __name__ == "__main__":
         - 🔍 **Integrated with GPT-4 Vision Model:** Leverages advanced Vision Language Models for enhanced functionality, including analyzing and generating insights from visual data.
         """)
 
-    if not datasets:
+    if not (datasets and os.path.exists(".streamlit/secrets.toml")):
         st.markdown("""
         ## Welcome to Nomad Analytix!
         
@@ -219,22 +224,33 @@ if __name__ == "__main__":
         
         Let's unlock the full potential of your data together! 🚀
         """)
+        # Retrieve OpenAI API key from Streamlit secrets
+        if not os.path.exists(".streamlit/secrets.toml"):
+            key = st.text_input("Enter OpenAI API Key to begin", type="password")
+            if not key:
+                st.stop()
+            with open(".streamlit/secrets.toml", "w") as file:
+                file.write(f'OPENAI_API_KEY="{key}"')
 
-    for message in st.session_state.messages:
-        if message["role"] == "system":
-            continue
-        if isinstance(message["content"], list):
-            with st.chat_message("assistant"):
-                st.image(decode_image(message["content"][1]["image_url"]["url"].split(',')[-1]))
-            continue
-        if message["role"] == "assistant":
-            with st.chat_message("inference", avatar="✨"):
-                st.markdown(message["content"])
-        else:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
+        openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-    if datasets:
+
+    else:
+        openai.api_key = st.secrets["OPENAI_API_KEY"]
+        for message in st.session_state.messages:
+            if message["role"] == "system":
+                continue
+            if isinstance(message["content"], list):
+                with st.chat_message("assistant"):
+                    st.image(decode_image(message["content"][1]["image_url"]["url"].split(',')[-1]))
+                continue
+            if message["role"] == "assistant":
+                with st.chat_message("inference", avatar="✨"):
+                    st.markdown(message["content"])
+            else:
+                with st.chat_message(message["role"]):
+                    st.markdown(message["content"])
+
         if not st.session_state['messages']:
             st.session_state.messages.append({"role": "system", "content": get_system_prompt(datasets)})
 
