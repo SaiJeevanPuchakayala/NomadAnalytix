@@ -129,7 +129,7 @@ if __name__ == "__main__":
                 st.markdown(prompt)
 
             # Check if the user is asking for a descriptive summary
-            if "describe" in prompt.lower() or "summary" in prompt.lower() or "details" in prompt.lower():
+            if check_descriptive(prompt):
                 with st.chat_message("inference", avatar="✨").status("Running...") as status:
                     response = handle_descriptive_query(prompt)
                     status.update(label="Done ✔️", state="complete")

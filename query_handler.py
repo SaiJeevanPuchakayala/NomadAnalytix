@@ -1,6 +1,7 @@
 from control import *
 import streamlit as st
 
+
 def get_system_prompt(datasets):
     # Role, Goal, Context Prompting Framework
     role = "You are a highly advanced data analysis assistant."
@@ -131,4 +132,9 @@ def handle_descriptive_query(question):
     return response
 
 
-
+def check_descriptive(question):
+    catch_words = ["describe", "summary", "details"]
+    for word in catch_words:
+        if word in question.lower():
+            return True
+    return False
