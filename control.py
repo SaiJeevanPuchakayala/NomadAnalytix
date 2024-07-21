@@ -11,7 +11,7 @@ def run_request(model_type, messages):
 	response = openai.ChatCompletion.create(model=model_type, messages=messages)
 
 	llm_response = response["choices"][0]["message"]["content"]
-	return find_code_blocks(llm_response)[0]
+	return llm_response
 
 
 def run_image_request(question_to_ask, model_type, image_path, messages):
@@ -91,3 +91,20 @@ def find_code_blocks(text):
 	# Use re.findall to find all occurrences of the pattern
 	code_blocks = re.findall(pattern, text, re.DOTALL)  # re.DOTALL allows matching across lines
 	return code_blocks
+
+
+def perform_eda(df):
+    eda_report = f"Dataset: {df.name}\n\n"
+    eda_report += "### Basic Information\n"
+    eda_report += f"Shape: {df.shape}\n"
+    eda_report += f"Columns: {df.columns.tolist()}\n"
+    eda_report += f"Data Types:\n{df.dtypes}\n"
+    eda_report += f"Missing Values:\n{df.isnull().sum()}\n\n"
+    eda_report += "### Descriptive Statistics\n"
+    eda_report += f"{df.describe()}\n\n"
+    eda_report += "### Unique Values per Column\n"
+    for col in df.columns:
+        eda_report += f"{col}: {df[col].nunique()} unique values\n"
+    return eda_report
+
+
