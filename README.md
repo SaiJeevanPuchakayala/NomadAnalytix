@@ -20,7 +20,7 @@ Nomad Analytix is an innovative data analysis assistant designed to help you ext
 
 ### Prerequisites
 
-- Python 3.9.12
+- Python 3.10.11
 - OpenAI API key
 
 ### Installation
@@ -140,7 +140,7 @@ This project is licensed under the Apache-2.0 License. See the [LICENSE](LICENSE
 
 For questions or feedback, please contact:
 
-- **Email:** saijeevan2002@example.com
+- **Email:** saijeevan2002@gmail.com
 - **GitHub:** [Sai Jeevan Puchakayala](https://github.com/SaiJeevanPuchakayala)
 
 ---
