@@ -2,7 +2,6 @@ pandas
 numpy
 matplotlib
 openai==0.28
-google-generativeai
-streamlit
+streamlit==1.36.0
 python-dotenv
 seaborn
